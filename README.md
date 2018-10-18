@@ -1,4 +1,4 @@
-# Pneumonia_Detection_ConvNets
+# Pneumonia_Detection_CNN
 
 RSNA Rneumonia Detection Challenge
 
@@ -26,3 +26,4 @@ References
 
 Approach:
 
+Coming Soon
