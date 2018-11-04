@@ -26,8 +26,8 @@ if __name__ == '__main__':
 
 	# create submission dictionary
 	submission_dict = {}
-	# loop through testse
-t	for imgs, filenames in test_gen:
+	# loop through testset
+	for imgs, filenames in test_gen:
 	    # predict batch of images
 	    preds = model.predict(imgs)
 	    # loop through batch
