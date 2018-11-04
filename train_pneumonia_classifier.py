@@ -4,47 +4,17 @@ import random
 import pydicom
 import numpy as np
 import pandas as pd
+from skimage import io
+from skimage import measure
+from skimage.transform import resize
+
+import tensorflow as tf
+from tensorflow import keras
 
 from matplotlib import pyplot as plt
+import matplotlib.patches as patches
 
-# Data Exploration
-def explore_data():
 
-    print('Total train images:',len(filenames))
-    print('Images with pneumonia:', len(pneumonia_locations))
-
-    ns = [len(value) for value in pneumonia_locations.values()]
-    plt.figure()
-    plt.hist(ns)
-    plt.xlabel('Pneumonia per image')
-    plt.xticks(range(1, np.max(ns)+1))
-    plt.show()
-
-    heatmap = np.zeros((1024, 1024))
-    ws = []
-    hs = []
-    for values in pneumonia_locations.values():
-        for value in values:
-            x,y,w,h = value
-            heatmap[y:y+h, x:x+w] +=1
-            ws.append(w)
-            hs.append(h)
-
-    plt.figure()
-    plt.title('Pneumonia location heatmap')
-    plt.imshow(heatmap)
-    plt.figure()
-    plt.title('Pneumonia height lengths')
-    plt.hist(hs, bins=np.linspace(0,1000,50))
-    plt.show()
-    plt.figure()
-    plt.title('Pneumonia width lengths')
-    plt.hist(ws, bins=np.linspace(0,1000,50))
-    plt.show()
-
-    print('Minimum pneumonia height:', np.min(hs))
-    print('Minimum pneumonia width:', np.min(ws))
-    
 if __name__ == '__main__':
     #Load pneumonia locations
     pneumonia_locations = {}
@@ -82,5 +52,27 @@ if __name__ == '__main__':
     print('n valid samples', len(valid_filenames))
     n_train_samples = len(filenames) - n_valid_samples
     
+    # plot pneumonia/img + location heatmap + pneumonia dimensions
     explore_data()
     
+    # create model and compile
+    model = create_network(input_size=256, channels=32, n_blocks=2, depth=4)
+    model.compile(optimizer='adam', loss=iou_bce_loss, metrics=['accuracy', mean_iou])
+
+    learning_rate = tf.keras.callbacks.LearningRateScheduler(cosine_annealing)
+
+    # create train/validation generators
+    folder = 'input/stage_1_train_images'
+    #folder = '../input/stage_1_train_images'
+    train_gen = generator(folder, train_filenames, pneumonia_locations,
+                          batch_size=32, image_size=256, shuffle=True, augment=True, predict=False)
+    valid_gen = generator(folder, valid_filenames, pneumonia_locations,
+                          batch_size=32, image_size=256, shuffle=False, predict=False)
+
+    history = model.fit_generator(train_gen, validation_data=valid_gen, callbacks=[learning_rate],
+                                  epochs=25, workers=4, use_multiprocessing=True)
+    model.save('RSNA.h5')
+    
+    plot_results(history)
+
+    plot_valid_prediction()
