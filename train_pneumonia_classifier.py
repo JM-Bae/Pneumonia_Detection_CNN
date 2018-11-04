@@ -75,4 +75,4 @@ if __name__ == '__main__':
     
     plot_results(history)
 
-    plot_valid_prediction()
+    plot_valid_prediction(valid_gen, model)
